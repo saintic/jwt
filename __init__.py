@@ -105,7 +105,7 @@ class JWTApiVerify(Resource, PluginBase):
         """
         res = {"success": False}
         #1.
-        token = request.cookies.get("token") or request.header.get("authentication")
+        token = request.cookies.get("token") or request.headers.get("authentication")
         #2.
         try:
             self.jwt.verifyJWT(token)
