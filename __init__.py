@@ -34,7 +34,7 @@ __author__      = "taochengwei <staugur@saintic.com>"
 __version__     = "0.1" 
 #: Plugin Url
 #: 插件主页
-__url__         = "https://www.saintic.com/plugins/jwt/"
+__url__         = "https://github.com/staugur/jwt/"
 #: Plugin License
 #: 插件许可证
 __license__     = "MIT"
@@ -81,7 +81,10 @@ class JWTApiCreate(Resource, PluginBase):
         username = request.form.get("username")
         password = request.form.get("password")
         #expire time(seconds)
-        _authRes = self._getAuthentication(username, password)
+        if username and password:
+            _authRes = self._getAuthentication(username, password)
+        else:
+            return {"msg": "invalid username or password"}
         #2.
         if _authRes:
             _data= self._getUserData(username)
@@ -106,6 +109,8 @@ class JWTApiVerify(Resource, PluginBase):
         res = {"success": False}
         #1.
         token = request.cookies.get("token") or request.headers.get("authentication")
+        if not token:
+            return res
         #2.
         try:
             self.jwt.verifyJWT(token)
