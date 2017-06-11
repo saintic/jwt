@@ -22,7 +22,7 @@ from flask_restful import Api, Resource
 
 #：Your plug-in name must be consistent with the plug-in directory name.
 #：你的插件名称，必须和插件目录名称等保持一致.
-__name__        = "JWT"
+__name__        = "jwt"
 #: Plugin describes information. What does it do?
 #: 插件描述信息,什么用处.
 __description__ = "Json Web Token Plugin for User Authentication and Authorization."
@@ -55,11 +55,11 @@ _JwtInstance= JWTUtil(_SecretKey, _Audience)
 
 #: JWT Blueprint
 JWTApi_blueprint = Blueprint("jwt", "jwt")
-class JWTApiCreate(Resource, PluginBase):
+class JWTApiAuthorize(Resource, PluginBase):
     """JWT Api Route: create token"""
 
     def __init__(self):
-        super(JWTApiCreate, self).__init__()
+        super(JWTApiAuthorize, self).__init__()
         self.jwt = _JwtInstance
 
     def _getAuthentication(self, username, password):
@@ -80,6 +80,7 @@ class JWTApiCreate(Resource, PluginBase):
         #1.
         username = request.form.get("username")
         password = request.form.get("password")
+        exipres  = 7200
         #expire time(seconds)
         if username and password:
             _authRes = self._getAuthentication(username, password)
@@ -87,10 +88,14 @@ class JWTApiCreate(Resource, PluginBase):
             return {"msg": "invalid username or password"}
         #2.
         if _authRes:
-            _data= self._getUserData(username)
+            _payload = self._getUserData(username)
             #3.
-            token= self.jwt.createJWT(_data, expiredSeconds=3600)
-            return {"token": token}
+            try:
+                token = self.jwt.createJWT(_payload, expiredSeconds=exipres)
+            except JWTException:
+            	return {"msg": "Failed to request token"}
+            else:
+                return {"token": token}
         else:
             return {"msg": "Authentication failed"}
 
@@ -121,7 +126,7 @@ class JWTApiVerify(Resource, PluginBase):
         return res
 
 api = Api(JWTApi_blueprint)
-api.add_resource(JWTApiCreate, '/login/', endpoint='login')
+api.add_resource(JWTApiAuthorize, '/authorize/', endpoint='authorize')
 api.add_resource(JWTApiVerify, '/verify/', endpoint='verify')
 
 
@@ -141,3 +146,11 @@ class JWTPlugin(PluginBase):
         """注册蓝图入口, 返回蓝图路由前缀及蓝图名称"""
         bep = {"prefix": "/jwt", "blueprint": JWTApi_blueprint}
         return bep
+
+    def bindToken(self, **kwargs):
+    	token   = request.cookies.get("token") or request.headers.get("authentication")
+    	g.token = _JwtInstance.analysisJWT(token)["payload"]
+
+
+    def register_cep(self):
+    	return {"before_request_hook": self.bindToken}
