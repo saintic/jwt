@@ -25,7 +25,7 @@ from flask_restful import Api, Resource
 __name__        = "jwt"
 #: Plugin describes information. What does it do?
 #: 插件描述信息,什么用处.
-__description__ = "Json Web Token Plugin for User Authentication and Authorization."
+__description__ = "Json Web Token Plugin for User Authentication."
 #: Plugin Author
 #: 插件作者
 __author__      = "taochengwei <staugur@saintic.com>"
@@ -43,7 +43,7 @@ __license__     = "MIT"
 __license_file__= "LICENSE"
 #: Plugin Readme File
 #: 插件自述文件
-__readme_file__ = "README"
+__readme_file__ = "README.md"
 #: Plugin state, enabled or disabled, default: enabled
 #: 插件状态, enabled、disabled, 默认enabled
 __state__       = "enabled"
@@ -55,11 +55,22 @@ _JwtInstance= JWTUtil(_SecretKey, _Audience)
 
 #: JWT Blueprint
 JWTApi_blueprint = Blueprint("jwt", "jwt")
-class JWTApiAuthorize(Resource, PluginBase):
+#: 可视化简单登录页
+@JWTApi_blueprint.route("/login/")
+def getToken():
+    return """
+        <form action="{0}" method="post">
+            <p><input type="text" id="username" name="username" autofocus="autofocus" required="required" autocomplete="off" placeholder="请输入用户名" value="" /></p>
+            <p><input type="password" id="password" name="password" required="required" placeholder="请输入密码" value="" /></p>
+            <p><input type="checkbox" name="remember" value="true">Remember Me 7d</p>
+            <input type="submit" value="登录">
+        </form>""".format(url_for("jwt.login"))
+
+class JWTApiCreate(Resource, PluginBase):
     """JWT Api Route: create token"""
 
     def __init__(self):
-        super(JWTApiAuthorize, self).__init__()
+        super(JWTApiCreate, self).__init__()
         self.jwt = _JwtInstance
 
     def _getAuthentication(self, username, password):
@@ -126,7 +137,7 @@ class JWTApiVerify(Resource, PluginBase):
         return res
 
 api = Api(JWTApi_blueprint)
-api.add_resource(JWTApiAuthorize, '/authorize/', endpoint='authorize')
+api.add_resource(JWTApiCreate, '/login/', endpoint='login')
 api.add_resource(JWTApiVerify, '/verify/', endpoint='verify')
 
 
